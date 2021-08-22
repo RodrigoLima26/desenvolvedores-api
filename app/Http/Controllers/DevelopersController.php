@@ -16,22 +16,18 @@ class DevelopersController extends Controller {
      */
     public function getDevelopers(Request $request) {
 
-        $q = $request->q;
-        $birthdate = $request->birthdate;
-        $gender = $request->gender;
-        $age = $request->age;
+        $q = $request->q ?: null;
+        $search = $request->search ?: null;
 
-        $developers = Developer::when($q, function($query) use ($q) {
-            return $query->where('name', 'like', '%'.$q.'%');
-        })->when($birthdate, function($query) use ($birthdate) {
-            return $query->where('birthdate', $birthdate);
-        })->when($age, function($query) use ($age) {
-            return $query->where('age', $age);
-        })->when($gender, function($query) use ($gender) {
-            return $query->where('gender', $gender);
-        });
+        $developers = Developer::when($search && $q, function($query) use ($q, $search) {
 
-        $developers = $request->page ? $developers->pagination(20) : $developers->get();
+            if($search == 'age' || $search == 'birthdate')
+                return $query->where($search, $q);
+
+            return $query->where($search, 'like', '%'.$q.'%');
+        })->orderBy('created_at', 'desc');
+
+        $developers = $request->page ? $developers->paginate(20) : $developers->get();
 
         return response($developers, 200);
     }
